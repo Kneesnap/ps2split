@@ -1,5 +1,8 @@
-# n64splat
-A n64 rom splitting tool to assist with decompilation and modding projects
+# ps2split
+A ps2 ELF splitting tool to assist with decompilation and modding projects
+It was created mainly for 'Frogger: The Great Quest', and 'Silent Hill 2'.
+
+This is based on an n64 rom splitter, https://github.com/ethteck/papermario
 
 For example usage, see https://github.com/ethteck/papermario
 The Makefile `setup` target calls n64splat with a config file that you can use for reference. More documentation coming soon.
