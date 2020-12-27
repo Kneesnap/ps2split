@@ -1,11 +1,11 @@
-from segtypes.segment import N64Segment
-from segtypes.rgba16 import N64SegRgba16
+from segtypes.segment import PS2Segment
+from segtypes.rgba16 import PS2SegRgba16
 import png
 import os
 from util import Yay0decompress
 
 
-class N64SegCi8(N64SegRgba16):
+class PS2SegCi8(PS2SegRgba16):
     def __init__(self, segment, next_segment, options):
         super().__init__(segment, next_segment, options)
 

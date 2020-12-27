@@ -13,15 +13,16 @@ import yaml
 import pickle
 from colorama import Style, Fore
 from collections import OrderedDict
-from segtypes.segment import N64Segment, parse_segment_type
-from segtypes.code import N64SegCode
+from segtypes.segment import PS2Segment, parse_segment_type
+from segtypes.code import PS2SegCode
+from elftools.elf.elffile import ELFFile
 from util import log
 
 parser = argparse.ArgumentParser(
-    description="Split a rom given a rom, a config, and output directory")
-parser.add_argument("rom", help="path to a .z64 rom")
+    description="Split an elf given an elf, a config, and output directory")
+parser.add_argument("binary", help="path to a PS2 elf binary")
 parser.add_argument("config", help="path to a compatible config .yaml file")
-parser.add_argument("outdir", help="a directory in which to extract the rom")
+parser.add_argument("outdir", help="a directory in which to extract the binary")
 parser.add_argument("--modes", nargs="+", default="all")
 parser.add_argument("--verbose", action="store_true",
                     help="Enable debug logging")
@@ -144,7 +145,7 @@ def get_base_segment_class(seg_type):
     except ModuleNotFoundError:
         return None
 
-    return getattr(segmodule, "N64Seg" + seg_type[0].upper() + seg_type[1:])
+    return getattr(segmodule, "PS2Seg" + seg_type[0].upper() + seg_type[1:])
 
 
 def get_extension_dir(options, config_path):
@@ -166,7 +167,7 @@ def get_extension_class(options, config_path, seg_type):
         log.write(err, status="error")
         return None
 
-    return getattr(ext_mod, "N64Seg" + seg_type[0].upper() + seg_type[1:])
+    return getattr(ext_mod, "PS2Seg" + seg_type[0].upper() + seg_type[1:])
 
 
 def fmt_size(size):
@@ -181,6 +182,8 @@ def fmt_size(size):
 def main(rom_path, config_path, repo_path, modes, verbose, ignore_cache=False):
     with open(rom_path, "rb") as f:
         rom_bytes = f.read()
+    with open(rom_path, "rb") as f:
+        elf_file = ELFFile(f)
 
     # Create main output dir
     Path(repo_path).mkdir(parents=True, exist_ok=True)
@@ -216,9 +219,22 @@ def main(rom_path, config_path, repo_path, modes, verbose, ignore_cache=False):
             cache = pickle.load(f)
     except Exception:
         cache = {}
+    
+    for section in elffile.iter_sections():
+        print("Section: " + section.name)
+    
+    # TODO: PAPERMARIO.s has an example of how to define a section.
+    
+    # TODO: First test if incbin works.
+    # TODO: First see if we can make ctr0.s contain all of the code in a compilable state.
+    # TODO: Then, start cleaning it up, make sure instructions are correct.
+    # TODO: Then, split it up into different files. See: PAPERMARIO.s
+    # TODO: Save 'main' section.
+    
+    # TODO: Load Elf.
 
     # Initialize segments
-    for i, segment in enumerate(config['segments']):
+    '''for i, segment in enumerate(config['segments']):
         if len(segment) == 1:
             # We're at the end
             continue
@@ -238,7 +254,7 @@ def main(rom_path, config_path, repo_path, modes, verbose, ignore_cache=False):
             segment = segment_class(segment, config['segments'][i + 1], options)
         except (IndexError, KeyError) as e:
             try:
-                segment = N64Segment(segment, config['segments'][i + 1], options)
+                segment = PS2Segment(segment, config['segments'][i + 1], options)
                 segment.error(e)
             except Exception as e:
                 log.write(f"fatal error (segment type = {seg_type}): " + str(e), status="error")
@@ -249,7 +265,7 @@ def main(rom_path, config_path, repo_path, modes, verbose, ignore_cache=False):
                 segment.error("segment name is not unique", status="error")
             seen_segment_names.add(segment.name)
 
-        if type(segment) == N64SegCode:
+        if type(segment) == PS2SegCode:
             segment.all_functions = defined_funcs
             segment.c_functions = c_funcs
             segment.c_variables = c_vars
@@ -289,7 +305,7 @@ def main(rom_path, config_path, repo_path, modes, verbose, ignore_cache=False):
                     if len(segment.errors) == 0:
                         ran_segments.append(segment)
 
-                        if type(segment) == N64SegCode:
+                        if type(segment) == PS2SegCode:
                             defined_funcs |= segment.glabels_added
                             undefined_funcs |= segment.glabels_to_add
                             undefined_syms |= segment.undefined_syms_to_add
@@ -374,7 +390,7 @@ def main(rom_path, config_path, repo_path, modes, verbose, ignore_cache=False):
         if verbose:
             print("Writing cache")
         with open(cache_path, "wb") as f:
-            pickle.dump(cache, f)
+            pickle.dump(cache, f)'''
 
     return 0 # no error
 

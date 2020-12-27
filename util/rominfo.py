@@ -5,7 +5,7 @@ import hashlib
 import zlib
 
 parser = argparse.ArgumentParser(description='Gives information on n64 roms')
-parser.add_argument('rom', help='path to a .z64 rom')
+parser.add_argument('rom', help='path to a .elf rom')
 
 country_codes = {
     0x37: "Beta",
@@ -71,12 +71,6 @@ def get_info_bytes(rom_bytes):
 
     cic = get_cic(rom_bytes)
     entry_point = get_entry_point(program_counter, cic)
-
-    # todo add support for
-    # compression_formats = []
-    #  for format in ["Yay0", "vpk0"]:
-    #     if rom_bytes.find(bytes(format, "ASCII")) != -1:
-    #         compression_formats.append(format)
 
     return N64Rom(name, country_code, libultra_version, crc1, crc2, cic, entry_point, len(rom_bytes))
 

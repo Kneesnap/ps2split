@@ -1,9 +1,9 @@
 import os
-from segtypes.segment import N64Segment
+from segtypes.segment import PS2Segment
 from pathlib import Path
 
 
-class N64SegBin(N64Segment):
+class PS2SegBin(PS2Segment):
     def split(self, rom_bytes, base_path):
         out_dir = self.create_split_dir(base_path, "bin")
 

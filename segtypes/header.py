@@ -1,8 +1,8 @@
 import os
-from segtypes.segment import N64Segment
+from segtypes.segment import PS2Segment
 from pathlib import Path
 
-class N64SegHeader(N64Segment):
+class PS2SegHeader(PS2Segment):
     def should_run(self):
         return N64Segment.should_run(self) or "asm" in self.options["modes"]
 

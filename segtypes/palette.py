@@ -1,10 +1,10 @@
 import os
-from segtypes.segment import N64Segment
+from segtypes.segment import PS2Segment
 from util.color import unpack_color
 from util.iter import iter_in_groups
 
 
-class N64SegPalette(N64Segment):
+class PS2SegPalette(PS2Segment):
     require_unique_name = False
 
     def __init__(self, segment, next_segment, options):

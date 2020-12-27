@@ -4,8 +4,8 @@ import argparse
 from util import rominfo
 from segtypes.code import N64SegCode
 
-parser = argparse.ArgumentParser(description="Create a splat config from a rom")
-parser.add_argument("rom", help="path to a .z64 rom")
+parser = argparse.ArgumentParser(description="Create a splat config from an elf")
+parser.add_argument("rom", help="path to a playstation 2 elf binary")
 
 
 def main(rom_path):
@@ -17,7 +17,7 @@ def main(rom_path):
 basename: {2}
 options:
   find_file_boundaries: True
-  compiler: "IDO"
+  compiler: "MW"
 """.format(rom.name.title(), rom.get_country_name(), basename)
 
     # codeseg = N64SegCode(0x1000, rom.size, "asm", "firstseg", rom.entry_point, [{"start": 0x1000, "end": rom.size, "name": "firstseg", "vram": rom.entry_point, "subtype": "asm"}], {})

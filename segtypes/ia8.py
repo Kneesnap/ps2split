@@ -1,8 +1,8 @@
-from segtypes.ia4 import N64SegIa4
+from segtypes.ia4 import PS2SegIa4
 import png
 from math import ceil
 
-class N64SegIa8(N64SegIa4):
+class PS2SegIa8(PS2SegIa4):
     def parse_image(self, data):
         img = bytearray()
 

@@ -3,7 +3,7 @@ from capstone import *
 from capstone.mips import *
 
 from collections import OrderedDict
-from segtypes.segment import N64Segment, parse_segment_name
+from segtypes.segment import PS2Segment, parse_segment_name
 import os
 from pathlib import Path, PurePath
 from ranges import Range, RangeDict
@@ -58,7 +58,7 @@ def parse_segment_files(segment, segment_class, seg_start, seg_end, seg_name, se
                 subtype = split_file[1]
 
             if not name:
-                name = N64SegCode.get_default_name(start) if seg_name == N64SegCode.get_default_name(
+                name = PS2SegCode.get_default_name(start) if seg_name == PS2SegCode.get_default_name(
                     seg_start) else f"{prefix}{start:X}"
 
             if segment.get("vram_lock", False):
@@ -77,7 +77,7 @@ def parse_segment_files(segment, segment_class, seg_start, seg_end, seg_name, se
     return ret
 
 
-class N64SegCode(N64Segment):
+class PS2SegCode(PS2Segment):
     def __init__(self, segment, next_segment, options):
         super().__init__(segment, next_segment, options)
         self.files = parse_segment_files(
@@ -540,7 +540,7 @@ class N64SegCode(N64Segment):
         return ret
 
     def split(self, rom_bytes, base_path):
-        md = Cs(CS_ARCH_MIPS, CS_MODE_MIPS64 + CS_MODE_BIG_ENDIAN)
+        md = Cs(CS_ARCH_MIPS, CS_MODE_MIPS32 + CS_MODE_LITTLE_ENDIAN)
         md.detail = True
         md.skipdata = True
 

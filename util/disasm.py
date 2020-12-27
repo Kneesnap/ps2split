@@ -11,7 +11,7 @@ parser.add_argument("file", help="path to a file containing MIPS assembly")
 
 
 def main(fname):
-    md = Cs(CS_ARCH_MIPS, CS_MODE_MIPS64 + CS_MODE_BIG_ENDIAN)
+    md = Cs(CS_ARCH_MIPS, CS_MODE_MIPS32 + CS_MODE_LITTLE_ENDIAN)
     md.detail = True
     md.skipdata = True
 
@@ -20,16 +20,22 @@ def main(fname):
 
     jr_count = 0
     insns = []
-    for insn in md.disasm(fbytes, 0x80000000):
-        if insn.mnemonic == "jr" and "ra" in insn.op_str:
-            jr_count += 1
+    for insn in md.disasm(fbytes, 0x100000):
+        name = insn.mnemonic
+        op_str = insn.op_str
+        
+        if name == "ext":
+            name = "sq"
+            array = op_str.split(", ")
+            array.pop()
+            array.pop()
+            op_str = ", ".join(array)
+    
+        print("/*0x%x:*/\t%s\t%s" %(insn.address, name, op_str))
     return jr_count
 
-for root, dirs, files in os.walk("/home/ethteck/repos/papermario/bin/Yay0"):
-    for fname in files:
-        if fname.endswith(".bin"):
-            num = main(os.path.join(root, fname))
-            print(fname + " - " + str(num))
+num = main("/home/osboxes/Desktop/main.bin")
+print("main.bin - " + str(num))
 
 # if __name__ == "__main__":
 #     args = parser.parse_args()

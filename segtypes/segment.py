@@ -43,7 +43,7 @@ def parse_segment_subalign(segment):
     return default_subalign
 
 
-class N64Segment:
+class PS2Segment:
     require_unique_name = True
 
     def __init__(self, segment, next_segment, options):
@@ -170,3 +170,4 @@ class N64Segment:
     @staticmethod
     def get_default_name(addr):
         return "{:X}".format(addr)
+

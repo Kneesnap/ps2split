@@ -1,5 +1,5 @@
 import os
-from segtypes.segment import N64Segment
+from segtypes.segment import PS2Segment
 from pathlib import Path
 from util import Yay0decompress
 import png
@@ -7,7 +7,7 @@ from math import ceil
 from util.color import unpack_color
 
 
-class N64SegRgba16(N64Segment):
+class PS2SegRgba16(PS2Segment):
     def __init__(self, segment, next_segment, options):
         super().__init__(segment, next_segment, options)
 

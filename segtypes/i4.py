@@ -1,8 +1,8 @@
-from segtypes.rgba16 import N64SegRgba16
+from segtypes.rgba16 import PS2SegRgba16
 import png
 from math import ceil
 
-class N64SegI4(N64SegRgba16):
+class PS2SegI4(PS2SegRgba16):
     def png_writer(self):
         return png.Writer(self.width, self.height, greyscale = True)
 

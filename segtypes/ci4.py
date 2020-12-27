@@ -1,6 +1,6 @@
-from segtypes.ci8 import N64SegCi8
+from segtypes.ci8 import PS2SegCi8
 
-class N64SegCi4(N64SegCi8):
+class PS2SegCi4(PS2SegCi8):
     def parse_image(self, data):
         img_data = bytearray()
 

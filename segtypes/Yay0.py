@@ -1,9 +1,9 @@
 import os
-from segtypes.segment import N64Segment
+from segtypes.segment import PS2Segment
 from pathlib import Path
 from util import Yay0decompress
 
-class N64SegYay0(N64Segment):
+class PS2SegYay0(PS2Segment):
     def split(self, rom_bytes, base_path):
         out_dir = self.create_parent_dir(base_path + "/bin", self.name)
 
