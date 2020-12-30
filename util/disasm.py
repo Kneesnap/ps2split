@@ -38,10 +38,11 @@ def get_bits(num, pos, bitCount, signed=False):
         result = -1 * (neg_mask - (result ^ neg_mask))
     return result
 
-# TODO: Sync Question?
 # TODO: EE Core-Specific Instruction Set.
 # TODO: COP1 Instruction Set
 
+def get_register(id):
+    return "$" + str(id)
 
 def get_instruction_string(labels, insn):
     name = insn.mnemonic
@@ -50,11 +51,17 @@ def get_instruction_string(labels, insn):
     modified = False
     
     for i in range(32): # Replace registers. Go in opposite order so registers like '$f30' don't get turned into '$f3' + '0'.
-        op_str = op_str.replace('$' + registers[i], '$' + str(i))
+        op_str = op_str.replace('$' + registers[i], get_register(i))
     for key in register_mapping.keys():
-        op_str = op_str.replace("$" + key, "$" + str(register_mapping[key]))
+        op_str = op_str.replace("$" + key, get_register(register_mapping[key]))
     
     main_opcode = get_bits(op_num, 26, 6)
+    
+    if name == "divu":
+       args = op_str.split(", ")
+       args.pop(0)
+       op_str = ", ".join(args)
+       modified = True
     
     if name != "branch" and (name.startswith("b") or name.startswith("j")):
     	modified = True
@@ -64,13 +71,14 @@ def get_instruction_string(labels, insn):
     	        array[i] = labels[int(array[i], 16)]
     	
     	op_str = ", ".join(array)
-        
+    
+    # COP0:
     if main_opcode == 0b011111: # SQ
         name = "sq"
         base = get_bits(op_num, 21, 5)
         rt = get_bits(op_num, 16, 5)
         offset = get_bits(op_num, 0, 16, signed=True)
-        op_str = "$" + str(rt) + ", " + (str(offset) if offset != 0 else "") + "($" + str(base) + ")"
+        op_str = get_register(rt) + ", " + (str(offset) if offset != 0 else "") + "(" + get_register(base) + ")"
         modified = True
     
     if main_opcode == 0b011110: # LQ
@@ -78,7 +86,7 @@ def get_instruction_string(labels, insn):
         base = get_bits(op_num, 21, 5)
         rt = get_bits(op_num, 16, 5)
         offset = get_bits(op_num, 0, 16, signed=True)
-        op_str = "$" + str(rt) + ", " + (str(offset) if offset != 0 else "") + "($" + str(base) + ")"
+        op_str = get_register(rt) + ", " + (str(offset) if offset != 0 else "") + "(" + get_register(base) + ")"
         modified = True
     
     if main_opcode == 0b101111: # COP0 CACHE
@@ -86,7 +94,7 @@ def get_instruction_string(labels, insn):
         base = get_bits(op_num, 21, 5)
         op = get_bits(op_num, 16, 5)
         offset = get_bits(op_num, 0, 16, signed=True)
-        op_str = hex(op) + ", " + (str(offset) if offset != 0 else "") + "($" + str(base) + ")\t// COP0"
+        op_str = hex(op) + ", " + (str(offset) if offset != 0 else "") + "(" + get_register(base) + ")\t// COP0"
         modified = True
     
     if main_opcode == 0b010000: # COP0
@@ -114,64 +122,64 @@ def get_instruction_string(labels, insn):
             op_str = ""
         elif get_bits(op_num, 0, 11) == 0b00000000000 and get_bits(op_num, 11, 5) == 0b11000 and get_bits(op_num, 21, 5) == 0b00000:
             name = "mfbpc"
-            op_str = "$" + str(get_bits(op_num, 16, 5))
+            op_str = get_register(get_bits(op_num, 16, 5))
         elif get_bits(op_num, 0, 11) == 0b00000000000 and get_bits(op_num, 21, 5) == 0b00000:
             name = "mfc0"
-            op_str = "$" + str(get_bits(op_num, 16, 5)) + ", $" + str(get_bits(op_num, 11, 5))
+            op_str = get_register(get_bits(op_num, 16, 5)) + ", " + get_register(get_bits(op_num, 11, 5))
         elif get_bits(op_num, 0, 11) == 0b00000000100 and get_bits(op_num, 11, 5) == 0b11000 and get_bits(op_num, 21, 5) == 0b00000:
             name = "mfdab"
-            op_str = "$" + str(get_bits(op_num, 16, 5))
+            op_str = get_register(get_bits(op_num, 16, 5))
         elif get_bits(op_num, 0, 11) == 0b00000000101 and get_bits(op_num, 11, 5) == 0b11000 and get_bits(op_num, 21, 5) == 0b00000:
             name = "mfdabm"
-            op_str = "$" + str(get_bits(op_num, 16, 5))
+            op_str = get_register(get_bits(op_num, 16, 5))
         elif get_bits(op_num, 0, 11) == 0b00000000110 and get_bits(op_num, 11, 5) == 0b11000 and get_bits(op_num, 21, 5) == 0b00000:
             name = "mfdvb"
-            op_str = "$" + str(get_bits(op_num, 16, 5))
+            op_str = get_register(get_bits(op_num, 16, 5))
         elif get_bits(op_num, 0, 11) == 0b00000000111 and get_bits(op_num, 11, 5) == 0b11000 and get_bits(op_num, 21, 5) == 0b00000:
             name = "mfdvbm"
-            op_str = "$" + str(get_bits(op_num, 16, 5))
+            op_str = get_register(get_bits(op_num, 16, 5))
         elif get_bits(op_num, 0, 11) == 0b00000000010 and get_bits(op_num, 11, 5) == 0b11000 and get_bits(op_num, 21, 5) == 0b00000:
             name = "mfiab"
-            op_str = "$" + str(get_bits(op_num, 16, 5))
+            op_str = get_register(get_bits(op_num, 16, 5))
         elif get_bits(op_num, 0, 11) == 0b00000000011 and get_bits(op_num, 11, 5) == 0b11000 and get_bits(op_num, 21, 5) == 0b00000:
             name = "mfiabm"
-            op_str = "$" + str(get_bits(op_num, 16, 5))
+            op_str = get_register(get_bits(op_num, 16, 5))
         elif get_bits(op_num, 21, 5) == 0b00000 and get_bits(op_num, 11, 5) == 0b11001 and get_bits(op_num, 6, 5) == 0b00000 and get_bits(op_num, 0, 1) == 0b1:
             name = "mfpc"
-            op_str = "$" + str(get_bits(op_num, 16, 5)) + ", $" + str(get_bits(op_num, 1, 5))
+            op_str = get_register(get_bits(op_num, 16, 5)) + ", " + get_register(get_bits(op_num, 1, 5))
         elif get_bits(op_num, 21, 5) == 0b00000 and get_bits(op_num, 11, 5) == 0b11001 and get_bits(op_num, 6, 5) == 0b00000 and get_bits(op_num, 0, 1) == 0b0:
             name = "mfps"
-            op_str = "$" + str(get_bits(op_num, 16, 5)) + ", $" + str(get_bits(op_num, 1, 5))
+            op_str = get_register(get_bits(op_num, 16, 5)) + ", " + get_register(get_bits(op_num, 1, 5))
         elif get_bits(op_num, 0, 11) == 0b00000000000 and get_bits(op_num, 11, 5) == 0b11000 and get_bits(op_num, 21, 5) == 0b00100:
             name = "mtbpc"
-            op_str = "$" + str(get_bits(op_num, 16, 5))
+            op_str = get_register(get_bits(op_num, 16, 5))
         elif get_bits(op_num, 0, 11) == 0b00000000000 and get_bits(op_num, 21, 5) == 0b00100:
             name = "mtc0"
-            op_str = "$" + str(get_bits(op_num, 16, 5)) + ", $" + str(get_bits(op_num, 11, 5))
+            op_str = get_register(get_bits(op_num, 16, 5)) + ", " + get_register(get_bits(op_num, 11, 5))
         elif get_bits(op_num, 0, 11) == 0b00000000100 and str(get_bits(op_num, 11, 5)) == 0b11000 and get_bits(op_num, 21, 5) == 0b00100:
             name = "mtdab"
-            op_str = "$" + str(get_bits(op_num, 16, 5))
+            op_str = get_register(get_bits(op_num, 16, 5))
         elif get_bits(op_num, 0, 11) == 0b00000000101 and str(get_bits(op_num, 11, 5)) == 0b11000 and get_bits(op_num, 21, 5) == 0b00100:
             name = "mtdabm"
-            op_str = "$" + str(get_bits(op_num, 16, 5))
+            op_str = get_register(get_bits(op_num, 16, 5))
         elif get_bits(op_num, 0, 11) == 0b00000000110 and str(get_bits(op_num, 11, 5)) == 0b11000 and get_bits(op_num, 21, 5) == 0b00100:
             name = "mtdvb"
-            op_str = "$" + str(get_bits(op_num, 16, 5))
+            op_str = get_register(get_bits(op_num, 16, 5))
         elif get_bits(op_num, 0, 11) == 0b00000000111 and str(get_bits(op_num, 11, 5)) == 0b11000 and get_bits(op_num, 21, 5) == 0b00100:
             name = "mtdvbm"
-            op_str = "$" + str(get_bits(op_num, 16, 5))
+            op_str = get_register(get_bits(op_num, 16, 5))
         elif get_bits(op_num, 0, 11) == 0b00000000010 and str(get_bits(op_num, 11, 5)) == 0b11000 and get_bits(op_num, 21, 5) == 0b00100:
             name = "mtiab"
-            op_str = "$" + str(get_bits(op_num, 16, 5))
+            op_str = get_register(get_bits(op_num, 16, 5))
         elif get_bits(op_num, 0, 11) == 0b00000000011 and str(get_bits(op_num, 11, 5)) == 0b11000 and get_bits(op_num, 21, 5) == 0b00100:
             name = "mtiabm"
-            op_str = "$" + str(get_bits(op_num, 16, 5))
+            op_str = get_register(get_bits(op_num, 16, 5))
         elif get_bits(op_num, 21, 5) == 0b00100 and get_bits(op_num, 11, 5) == 0b11001 and get_bits(op_num, 6, 5) == 0b00000 and get_bits(op_num, 0, 1) == 0b1:
             name = "mtpc"
-            op_str = "$" + str(get_bits(op_num, 16, 5)) + ", $" + str(get_bits(op_num, 1, 5))
+            op_str = get_register(get_bits(op_num, 16, 5)) + ", " + get_register(get_bits(op_num, 1, 5))
         elif get_bits(op_num, 21, 5) == 0b00100 and get_bits(op_num, 11, 5) == 0b11001 and get_bits(op_num, 6, 5) == 0b00000 and get_bits(op_num, 0, 1) == 0b0:
             name = "mtps"
-            op_str = "$" + str(get_bits(op_num, 16, 5)) + ", $" + str(get_bits(op_num, 1, 5))
+            op_str = get_register(get_bits(op_num, 16, 5)) + ", " + get_register(get_bits(op_num, 1, 5))
         elif get_bits(op_num, 21, 5) == 0b10000 and get_bits(op_num, 16, 15) == 0b000000000000000 and get_bits(op_num, 0, 6) == 0b001000:
             name = "tlbp"
             op_str = ""
@@ -191,15 +199,25 @@ def get_instruction_string(labels, insn):
             op_str += "\t// COP0"
     
     if main_opcode == 0b000000: # Special.
+        if get_bits(op_num, 0, 6) == 0b100111: # NOR
+            name = "nor"
+            rs = get_bits(op_num, 21, 5)
+            rt = get_bits(op_num, 16, 5)
+            rd = get_bits(op_num, 11, 5)
+            op_str = get_register(rd) + ", " + get_register(rs) + ", " + get_register(rt)
+            modified = True
         if get_bits(op_num, 0, 6) == 0b011010: # DIV
             name = "div"
             rs = get_bits(op_num, 21, 5)
             rt = get_bits(op_num, 16, 5)
-            op_str = "$" + str(rs) + ", $" + str(rt)
+            op_str = get_register(rs) + ", " + get_register(rt)
             modified = True
         
-        if get_bits(op_num, 0, 6) == 0b001111: # SYNC - TODO - Has parameter?
+        if get_bits(op_num, 0, 6) == 0b001111: # SYNC
             name = "sync"
+            if get_bits(op_num, 6, 5) == 0b10000:
+               name = name + ".p"
+            
             op_str = ""
             modified = True
         
