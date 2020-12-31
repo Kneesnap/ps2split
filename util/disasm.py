@@ -13,6 +13,24 @@ register_mapping['s8'] = 30 # Same register as 'fp'.
 register_mapping['ac2'] = 2 # Same as 'v0'.
 register_mapping['ac3'] = 3 # Same as 'v1'.
 
+main_opcode_offset_clones = {}
+main_opcode_offset_clones[0b100000] = "lb"
+main_opcode_offset_clones[0b100100] = "lbu"
+main_opcode_offset_clones[0b110111] = "ld"
+main_opcode_offset_clones[0b011010] = "ldl"
+main_opcode_offset_clones[0b011011] = "ldr"
+main_opcode_offset_clones[0b100001] = "lh"
+main_opcode_offset_clones[0b100101] = "lhu"
+main_opcode_offset_clones[0b100011] = "lw"
+main_opcode_offset_clones[0b100010] = "lwl"
+main_opcode_offset_clones[0b100110] = "lwr"
+main_opcode_offset_clones[0b100111] = "lwu"
+main_opcode_offset_clones[0b101000] = "sb"
+main_opcode_offset_clones[0b111111] = "sd"
+main_opcode_offset_clones[0b101100] = "sdl"
+main_opcode_offset_clones[0b101101] = "sdr"
+main_opcode_offset_clones[0b101001] = "sh"
+
 
 # Begin!
 parser = argparse.ArgumentParser(description="Disassemble a file")
@@ -625,7 +643,7 @@ def get_instruction_string(labels, insn):
         elif sub_code == 0b000000 and option == 0b10000: # ADD.S
             name = "add.s"
             op_str = get_fp_register(fd) + ", " + get_fp_register(fs) + ", " + get_fp_register(ft)
-        elif sub_code == 0b000000 and option == 0b10000: # ADDA.S
+        elif sub_code == 0b011000 and option == 0b10000: # ADDA.S
             name = "adda.s"
             op_str = get_fp_register(fs) + ", " + get_fp_register(ft)
         elif sub_code == 0b110010 and option == 0b10000 and fd == 0b00000: # C.EQ.S
@@ -699,33 +717,141 @@ def get_instruction_string(labels, insn):
     
     # CPU Instruction Set (Capstone Fixes)
     if main_opcode == 0b000000: # Special.
-        if get_bits(op_num, 0, 6) == 0b100111: # NOR
-            name = "nor"
-            rs = get_bits(op_num, 21, 5)
-            rt = get_bits(op_num, 16, 5)
-            rd = get_bits(op_num, 11, 5)
-            op_str = get_register(rd) + ", " + get_register(rs) + ", " + get_register(rt)
-            modified = True
-        if get_bits(op_num, 0, 6) == 0b011010: # DIV
-            name = "div"
-            rs = get_bits(op_num, 21, 5)
-            rt = get_bits(op_num, 16, 5)
-            op_str = get_register(rs) + ", " + get_register(rt)
-            modified = True
+        sub_code = get_bits(op_num, 0, 6)
+        rs = get_bits(op_num, 21, 5)
+        rt = get_bits(op_num, 16, 5)
+        rd = get_bits(op_num, 11, 5)
+        sa = get_bits(op_num, 6, 5)
+        old_state = modified
+        modified = True
         
-        if get_bits(op_num, 0, 6) == 0b001111: # SYNC
-            name = "sync"
-            if get_bits(op_num, 6, 5) == 0b10000:
-               name = name + ".p"
-            
-            op_str = ""
-            modified = True
-        
-        if get_bits(op_num, 0, 6) == 0b001101: # BREAK - Breakpoint???
+        if sub_code == 0b001101: # BREAK - Breakpoint???
             name = "break"
             op_str = hex(get_bits(op_num, 6, 20))
-            modified = True
+        elif sub_code == 0b101100: # DADD
+            name = "dadd"
+            op_str = get_register(rd) + ", " + get_register(rs) + ", " + get_register(rt)
+        elif sub_code == 0b101101: # DADDU
+            name = "daddu"
+            op_str = get_register(rd) + ", " + get_register(rs) + ", " + get_register(rt)
+        elif sub_code == 0b011010: # DIV
+            name = "div"
+            op_str = get_register(rs) + ", " + get_register(rt)
+        elif sub_code == 0b011011: # DIVU
+            name = "divu"
+            op_str = get_register(rs) + ", " + get_register(rt)
+        elif sub_code == 0b111000: # DSLL
+            name = "dsll"
+            op_str = get_register(rd) + ", " + get_register(rt) + ", " + hex(sa)
+        elif sub_code == 0b111100: # DSLL32
+            name = "dsll32"
+            op_str = get_register(rd) + ", " + get_register(rt) + ", " + hex(sa)
+        elif sub_code == 0b010100: # DSLLV
+            name = "dsllv"
+            op_str = get_register(rd) + ", " + get_register(rt) + ", " + get_register(rs)
+        elif sub_code == 0b111011: # DSRA
+            name = "dsra"
+            op_str = get_register(rd) + ", " + get_register(rt) + ", " + hex(sa)
+        elif sub_code == 0b111111: # DSRA32
+            name = "dsra32"
+            op_str = get_register(rd) + ", " + get_register(rt) + ", " + hex(sa)
+        elif sub_code == 0b010111: # DSRAV
+            name = "dsrav"
+            op_str = get_register(rd) + ", " + get_register(rt) + ", " + get_register(rs)
+        elif sub_code == 0b111010: # DSRL
+            name = "dsrl"
+            op_str = get_register(rd) + ", " + get_register(rt) + ", " + hex(sa)
+        elif sub_code == 0b111110: # DSRL32
+            name = "dsrl32"
+            op_str = get_register(rd) + ", " + get_register(rt) + ", " + hex(sa)
+        elif sub_code == 0b010110: # DSRLV
+            name = "dsrlv"
+            op_str = get_register(rd) + ", " + get_register(rt) + ", " + get_register(rs)
+        elif sub_code == 0b101110: # DSUB
+            name = "dsub"
+            op_str = get_register(rd) + ", " + get_register(rs) + ", " + get_register(rt)
+        elif sub_code == 0b101111: # DSUBU
+            name = "dsubu"
+            op_str = get_register(rd) + ", " + get_register(rs) + ", " + get_register(rt)
+        elif sub_code == 0b010000: # MFHI
+            name = "mfhi"
+            op_str = get_register(rd)
+        elif sub_code == 0b010010: # MFLO
+            name = "mflo"
+            op_str = get_register(rd)
+        elif sub_code == 0b001011: # MOVN
+            name = "movn"
+            op_str = get_register(rd) + ", " + get_register(rs) + ", " + get_register(rt)
+        elif sub_code == 0b001010: # MOVZ
+            name = "movz"
+            op_str = get_register(rd) + ", " + get_register(rs) + ", " + get_register(rt)
+        elif sub_code == 0b010001: # MTHI
+            name = "mthi"
+            op_str = get_register(rs)
+        elif sub_code == 0b010011: # MTLO
+            name = "mtlo"
+            op_str = get_register(rs)
+        elif sub_code == 0b011000: # MULT
+            name = "mult"
+            op_str = (get_register(rd) + ", " if rd != 0 else "") + get_register(rs) + ", " + get_register(rt)
+        elif sub_code == 0b011001: # MULTU
+            name = "multu"
+            op_str = (get_register(rd) + ", " if rd != 0 else "") + get_register(rs) + ", " + get_register(rt)
+        elif sub_code == 0b100111: # NOR
+            name = "nor"
+            op_str = get_register(rd) + ", " + get_register(rs) + ", " + get_register(rt)
+        elif sub_code == 0b100101: # OR
+            name = "or"
+            op_str = get_register(rd) + ", " + get_register(rs) + ", " + get_register(rt)
+        elif sub_code == 0b001111: # SYNC
+            name = "sync"
+            op_str = ""
+            if sa == 0b10000:
+               name = name + ".p"
+        else:
+            modified = old_state
+            
+    if main_opcode == 0b011000: # DADDI
+        name = "daddi"
+        rs = get_bits(op_num, 21, 5)
+        rt = get_bits(op_num, 16, 5)
+        immediate = get_bits(op_num, 0, 16, signed=True)
+        op_str = get_register(rt) + ", " + get_register(rs) + ", " + str(immediate)
+        
     
+    if main_opcode == 0b011001: # DADDIU
+        name = "daddiu"
+        rs = get_bits(op_num, 21, 5)
+        rt = get_bits(op_num, 16, 5)
+        immediate = get_bits(op_num, 0, 16, signed=True)
+        op_str = get_register(rt) + ", " + get_register(rs) + ", " + str(immediate)
+        
+    if main_opcode == 0b001101: # ORI
+        name = "ori"
+        rs = get_bits(op_num, 21, 5)
+        rt = get_bits(op_num, 16, 5)
+        immediate = get_bits(op_num, 0, 16, signed=False)
+        op_str = get_register(rt) + ", " + get_register(rs) + ", " + str(immediate)
+    
+    if main_opcode == 0b001111: # LUI
+        name = "lui"
+        rt = get_bits(op_num, 16, 5)
+        immediate = get_bits(op_num, 0, 16, signed=True)
+        op_str = get_register(rt) + ", " + hex(immediate)
+    
+    if main_opcode == 0b110011: # PREF (Not the same as what goes in main_opcode_offset_clones.)
+        name = main_opcode_offset_clones[main_opcode]
+        base = get_bits(op_num, 21, 5)
+        hint = get_bits(op_num, 16, 5)
+        offset = get_bits(op_num, 0, 16, signed=True)
+        op_str = str(hint) + ", " + (str(offset) if offset != 0 else "") + "(" + get_register(base) + ")"
+    
+    if main_opcode in main_opcode_offset_clones: # A bunch of instructions.
+        name = main_opcode_offset_clones[main_opcode]
+        base = get_bits(op_num, 21, 5)
+        rt = get_bits(op_num, 16, 5)
+        offset = get_bits(op_num, 0, 16, signed=True)
+        op_str = get_register(rt) + ", " + (str(offset) if offset != 0 else "") + "(" + get_register(base) + ")"
         
     if modified:
         return ("/*0x%x: %s*/\t%s\t%s\t// %s %s" %(insn.address, (' '.join(format(x, '02x') for x in insn.bytes)).upper(), name, op_str, insn.mnemonic, insn.op_str))
@@ -757,7 +883,7 @@ def main(fname):
         if insn.address in labels.keys():
             print(labels[insn.address] + ":")
             
-        if insn.address >= 0x21FDE0 or (insn.address >= 0x1EDA80 and insn.address < 0x21A380): # Where code ends and data begins in Frogger TGQ. Also seems to be an area for VU code? It also just seems to have data too.
+        if insn.address >= 0x21FDE0 or (insn.address >= 0x1EDA80 and insn.address < 0x21A380) or (insn.address >= 0x186EA0 and insn.address < 0x186EB8): # Where code ends and data begins in Frogger TGQ. Also seems to be an area for VU code? It also just seems to have data too.
             print("\t .byte %s" %((', '.join('0x' + format(x, '02x').upper() for x in insn.bytes))))
         else:
             print(get_instruction_string(labels, insn))
