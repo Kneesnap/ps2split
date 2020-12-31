@@ -37,9 +37,10 @@ def get_bits(num, pos, bitCount, signed=False):
     if signed and (result & neg_mask) == neg_mask:
         result = -1 * (neg_mask - (result ^ neg_mask))
     return result
-
-# TODO: COP1 Instruction Set
-
+    
+def get_fp_register(id):
+    return "$f" + str(id)
+    
 def get_register(id):
     return "$" + str(id)
 
@@ -111,7 +112,7 @@ def get_instruction_string(labels, insn):
             name = "mthi1"
             rs = get_bits(op_num, 21, 5)
             op_str = get_register(rs)
-        elif sub_code == 0b010001: # MTLO1 - TODO: The documentation here has no distinction from the previous instruction. I believe the documentation is wrong, and this needs investigation
+        elif sub_code == 0b010011: # MTLO1 - The documentation here is wrong, it lists the subcode as 010001.
             name = "mtlo1"
             rs = get_bits(op_num, 21, 5)
             op_str = get_register(rs)
@@ -229,7 +230,8 @@ def get_instruction_string(labels, insn):
                 name = "mmi0" # Unknown
                 op_str = "error"
         elif sub_code == 0b101000: # MMI1
-            pcode = get_bits(op_num, 6, 5) # TODO: Go over conditions to check for shared registers between all of them, and move the get_bits code to outside of the condition.
+            pcode = get_bits(op_num, 6, 5)
+            op_str = get_register(rd) + ", " + get_register(rs) + ", " + get_register(rt)
             
             if pcode == 0b00101: # PABSH
                 name = "pabsh"
@@ -239,52 +241,36 @@ def get_instruction_string(labels, insn):
                 op_str = get_register(rd) + ", " + get_register(rt)
             elif pcode == 0b11000: # PADDUB
                 name = "paddub"
-                op_str = get_register(rd) + ", " + get_register(rs) + ", " + get_register(rt)
             elif pcode == 0b10100: # PADDUH
                 name = "padduh"
-                op_str = get_register(rd) + ", " + get_register(rs) + ", " + get_register(rt)
             elif pcode == 0b10000: # PADDUW
                 name = "padduw"
-                op_str = get_register(rd) + ", " + get_register(rs) + ", " + get_register(rt)
             elif pcode == 0b00100: # PADSBH
                 name = "padsbh"
-                op_str = get_register(rd) + ", " + get_register(rs) + ", " + get_register(rt)
             elif pcode == 0b01010: # PCEQB
                 name = "pceqb"
-                op_str = get_register(rd) + ", " + get_register(rs) + ", " + get_register(rt)
             elif pcode == 0b00110: # PCEQH
                 name = "pceqh"
-                op_str = get_register(rd) + ", " + get_register(rs) + ", " + get_register(rt)
             elif pcode == 0b00010: # PCEQW
                 name = "pceqw"
-                op_str = get_register(rd) + ", " + get_register(rs) + ", " + get_register(rt)
             elif pcode == 0b11010: # PEXTUB
                 name = "pextub"
-                op_str = get_register(rd) + ", " + get_register(rs) + ", " + get_register(rt)
             elif pcode == 0b10110: # PEXTUH
                 name = "pextuh"
-                op_str = get_register(rd) + ", " + get_register(rs) + ", " + get_register(rt)
             elif pcode == 0b10010: # PEXTUW
                 name = "pextuw"
-                op_str = get_register(rd) + ", " + get_register(rs) + ", " + get_register(rt)
             elif pcode == 0b00111: # PMINH
                 name = "pminh"
-                op_str = get_register(rd) + ", " + get_register(rs) + ", " + get_register(rt)
             elif pcode == 0b00011: # PMINW
                 name = "pminw"
-                op_str = get_register(rd) + ", " + get_register(rs) + ", " + get_register(rt)
             elif pcode == 0b11001: # PSUBUB
                 name = "psubub"
-                op_str = get_register(rd) + ", " + get_register(rs) + ", " + get_register(rt)
             elif pcode == 0b10101: # PSUBUH
                 name = "psubuh"
-                op_str = get_register(rd) + ", " + get_register(rs) + ", " + get_register(rt)
             elif pcode == 0b10001: # PSUBUW
                 name = "psubuw"
-                op_str = get_register(rd) + ", " + get_register(rs) + ", " + get_register(rt)
             elif pcode == 0b11011: # QFSRV
                 name = "qfsrv"
-                op_str = get_register(rd) + ", " + get_register(rs) + ", " + get_register(rt)
             else:
                 name = "mmi1" # Unknown
                 op_str = "error"
@@ -580,6 +566,138 @@ def get_instruction_string(labels, insn):
         if modified:
             op_str += "\t// COP0"
     
+    # COP1
+    if main_opcode == 0b110001: # LWC
+        name = "lwc1"
+        base = get_bits(op_num, 21, 5)
+        ft = get_bits(op_num, 16, 5)
+        offset = get_bits(op_num, 0, 16, signed=True)
+        op_str = get_fp_register(ft) + ", " + (str(offset) if offset != 0 else "") + "(" + get_register(base) + ")\t// COP1"
+        modified = True
+    
+    if main_opcode == 0b111001: # SWC1
+        name = "swc1"
+        base = get_bits(op_num, 21, 5)
+        ft = get_bits(op_num, 16, 5)
+        offset = get_bits(op_num, 0, 16, signed=True)
+        op_str = get_fp_register(ft) + ", " + (str(offset) if offset != 0 else "") + "(" + get_register(base) + ")\t// COP1"
+        modified = True
+    
+    if main_opcode == 0b010001: # COP1
+        sub_code = get_bits(op_num, 0, 6)
+        option = get_bits(op_num, 21, 5)
+        ft = get_bits(op_num, 16, 5)
+        fs = get_bits(op_num, 11, 5)
+        fd = get_bits(op_num, 6, 5)
+        
+        modified = True
+        if option == 0b01000 and get_bits(op_num, 16, 5) == 0b00000: # BC1F
+            name = "bc1f"
+            op_str = labels[insn.address + 4 + (get_bits(op_num, 0, 16, signed=True) << 2)]
+        elif option == 0b01000 and get_bits(op_num, 16, 5) == 0b00010: # BC1FL
+            name = "bc1fl"
+            op_str = labels[insn.address + 4 + (get_bits(op_num, 0, 16, signed=True) << 2)]
+        elif option == 0b01000 and get_bits(op_num, 16, 5) == 0b00001: # BC1T
+            name = "bc1t"
+            op_str = labels[insn.address + 4 + (get_bits(op_num, 0, 16, signed=True) << 2)]
+        elif option == 0b01000 and get_bits(op_num, 16, 5) == 0b00011: # BC1TL
+            name = "bc1tl"
+            op_str = labels[insn.address + 4 + (get_bits(op_num, 0, 16, signed=True) << 2)]
+        elif option == 0b00010 and get_bits(op_num, 0, 11) == 0b00000000000: # CFC1
+            name = "cfc1"
+            rt = ft
+            op_str = get_register(rt) + ", " + get_fp_register(fs)
+        elif option == 0b00110 and get_bits(op_num, 0, 11) == 0b00000000000: # CTC1
+            name = "ctc1"
+            rt = ft
+            op_str = get_register(rt) + ", " + get_fp_register(fs)
+        elif option == 0b00000 and get_bits(op_num, 0, 11) == 0b00000000000: # MFC1
+            name = "mfc1"
+            rt = ft
+            op_str = get_register(rt) + ", " + get_fp_register(fs)
+        elif option == 0b00100 and get_bits(op_num, 0, 11) == 0b00000000000: # MTC1
+            name = "mtc1"
+            rt = ft
+            op_str = get_register(rt) + ", " + get_fp_register(fs)
+        elif sub_code == 0b000101 and option == 0b10000: # ABS.S
+            name = "abs.s"
+            op_str = get_fp_register(fd) + ", " + get_fp_register(fs)
+        elif sub_code == 0b000000 and option == 0b10000: # ADD.S
+            name = "add.s"
+            op_str = get_fp_register(fd) + ", " + get_fp_register(fs) + ", " + get_fp_register(ft)
+        elif sub_code == 0b000000 and option == 0b10000: # ADDA.S
+            name = "adda.s"
+            op_str = get_fp_register(fs) + ", " + get_fp_register(ft)
+        elif sub_code == 0b110010 and option == 0b10000 and fd == 0b00000: # C.EQ.S
+            name = "c.eq.s"
+            op_str = get_fp_register(fs) + ", " + get_fp_register(ft)
+        elif sub_code == 0b110000 and option == 0b10000 and fd == 0b00000: # C.F.S
+            name = "c.f.s"
+            op_str = get_fp_register(fs) + ", " + get_fp_register(ft)
+        elif sub_code == 0b110110 and option == 0b10000 and fd == 0b00000: # C.LE.S
+            name = "c.le.s"
+            op_str = get_fp_register(fs) + ", " + get_fp_register(ft)
+        elif sub_code == 0b110100 and option == 0b10000 and fd == 0b00000: # C.LT.S
+            name = "c.lt.s"
+            op_str = get_fp_register(fs) + ", " + get_fp_register(ft)
+        elif sub_code == 0b100000 and option == 0b10100: # CVT.S.W
+            name = "cvt.s.w"
+            op_str = get_fp_register(fd) + ", " + get_fp_register(fs)
+        elif sub_code == 0b100100 and option == 0b10000: # CVT.W.S
+            name = "cvt.w.s"
+            op_str = get_fp_register(fd) + ", " + get_fp_register(fs)
+        elif sub_code == 0b000011 and option == 0b10000: # DIV.S
+            name = "div.s"
+            op_str = get_fp_register(fd) + ", " + get_fp_register(fs) + ", " + get_fp_register(ft)
+        elif sub_code == 0b011100 and option == 0b10000: # MADD.S
+            name = "madd.s"
+            op_str = get_fp_register(fd) + ", " + get_fp_register(fs) + ", " + get_fp_register(ft)
+        elif sub_code == 0b011110 and option == 0b10000: # MADDA.S
+            name = "madda.s"
+            op_str = get_fp_register(fs) + ", " + get_fp_register(ft)
+        elif sub_code == 0b101000 and option == 0b10000: # MAX.S
+            name = "max.s"
+            op_str = get_fp_register(fd) + ", " + get_fp_register(fs) + ", " + get_fp_register(ft)
+        elif sub_code == 0b101001 and option == 0b10000: # MIN.S
+            name = "min.s"
+            op_str = get_fp_register(fd) + ", " + get_fp_register(fs) + ", " + get_fp_register(ft)
+        elif sub_code == 0b000110 and option == 0b10000: # MOV.S
+            name = "mov.s"
+            op_str = get_fp_register(fd) + ", " + get_fp_register(fs)
+        elif sub_code == 0b011101 and option == 0b10000: # MSUB.S
+            name = "msub.s"
+            op_str = get_fp_register(fd) + ", " + get_fp_register(fs) + ", " + get_fp_register(ft)
+        elif sub_code == 0b011111 and option == 0b10000: # MSUBA.S
+            name = "msuba.s"
+            op_str = get_fp_register(fs) + ", " + get_fp_register(ft)
+        elif sub_code == 0b000010 and option == 0b10000: # MUL.S
+            name = "mul.s"
+            op_str = get_fp_register(fd) + ", " + get_fp_register(fs) + ", " + get_fp_register(ft)
+        elif sub_code == 0b011010 and option == 0b10000: # MULA.S
+            name = "mula.s"
+            op_str = get_fp_register(fs) + ", " + get_fp_register(ft)
+        elif sub_code == 0b000111 and option == 0b10000: # NEG.S
+            name = "neg.s"
+            op_str = get_fp_register(fd) + ", " + get_fp_register(fs)
+        elif sub_code == 0b010110 and option == 0b10000: # RSQRT.S
+            name = "rsqrt.s"
+            op_str = get_fp_register(fd) + ", " + get_fp_register(fs) + ", " + get_fp_register(ft)
+        elif sub_code == 0b000100 and option == 0b10000: # SQRT.S
+            name = "sqrt.s"
+            op_str = get_fp_register(fd) + ", " + get_fp_register(ft)
+        elif sub_code == 0b000001 and option == 0b10000: # SUB.S
+            name = "sub.s"
+            op_str = get_fp_register(fd) + ", " + get_fp_register(fs) + ", " + get_fp_register(ft)
+        elif sub_code == 0b000001 and option == 0b10000: # SUBA.S
+            name = "suba.s"
+            op_str = get_fp_register(fs) + ", " + get_fp_register(ft)
+        else:
+            modified = False
+        
+        if modified:
+            op_str += "\t// COP1"
+    
+    # CPU Instruction Set (Capstone Fixes)
     if main_opcode == 0b000000: # Special.
         if get_bits(op_num, 0, 6) == 0b100111: # NOR
             name = "nor"
